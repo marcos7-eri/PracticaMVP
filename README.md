@@ -36,11 +36,11 @@ La aplicación queda en `http://localhost`; `parking_data` conserva SQLite entre
 ## GitHub Actions
 
 - Push a `dev`: pruebas unitarias, integración, E2E y compilación.
-- Push a `main`: mismas pruebas; después publica `DOCKERHUB_USERNAME/parking-frontend` y `DOCKERHUB_USERNAME/parking-backend` con etiquetas `latest` y SHA. Si `ENABLE_DEPLOY=true`, crea/actualiza infraestructura AWS y configura la VM con Ansible.
+- Push a `main`: mismas pruebas; después publica `DOCKERHUB_USERNAME/parking-frontend` y `DOCKERHUB_USERNAME/parking-backend` con etiquetas `latest` y SHA. Si `ENABLE_DEPLOY=true`, crea/actualiza infraestructura OCI y configura la VM con Ansible.
 
-Configura estos *secrets* en GitHub: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`; para despliegue también `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `SSH_PRIVATE_KEY`, `SSH_PUBLIC_KEY`, `TF_STATE_BUCKET`. Crea previamente un bucket S3 privado para el estado de Terraform y configura la variable de repositorio `ENABLE_DEPLOY=true` solo cuando las credenciales y el bucket estén listos. `SSH_PRIVATE_KEY` y `SSH_PUBLIC_KEY` deben ser el mismo par Ed25519; nunca subas la clave privada al repositorio.
+Configura estos *secrets* en GitHub: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`; para despliegue también `OCI_TENANCY_OCID`, `OCI_USER_OCID`, `OCI_COMPARTMENT_OCID`, `OCI_FINGERPRINT`, `OCI_API_PRIVATE_KEY`, `OCI_NAMESPACE`, `SSH_PRIVATE_KEY`, `SSH_PUBLIC_KEY` y `TF_STATE_BUCKET`. Crea previamente un bucket privado de OCI Object Storage con versionado para el estado de Terraform. La variable de repositorio `OCI_REGION` puede fijarse a `sa-saopaulo-1` y `ENABLE_DEPLOY=true` solo cuando credenciales, claves y bucket estén listos. `SSH_PRIVATE_KEY` y `SSH_PUBLIC_KEY` deben ser el mismo par Ed25519; nunca subas claves privadas al repositorio.
 
-Terraform crea una VPC, subred pública, gateway, rutas, grupo de seguridad, VM Ubuntu 24.04 y Elastic IP. Ansible instala Docker, Git, UFW e iptables; permite 22, 80 y 443, y ejecuta ambos contenedores. El puerto 443 queda preparado para añadir TLS cuando haya dominio. AWS, Elastic IP y S3 pueden generar cargos.
+Terraform crea una VCN, subred pública, gateway, rutas, lista de seguridad y VM Ubuntu 24.04 con IP pública en OCI. La forma predeterminada es `VM.Standard.A1.Flex` con 1 OCPU y 6 GB, sujeta a disponibilidad y límites de la cuenta. Ansible instala Docker, Git, UFW e iptables; permite 22, 80 y 443, y ejecuta ambos contenedores. El puerto 443 queda preparado para añadir TLS cuando haya dominio. OCI puede generar cargos según la cuenta y los recursos elegidos.
 
 ## Reparto sugerido para dos personas
 

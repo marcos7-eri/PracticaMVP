@@ -1,19 +1,24 @@
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+    oci = {
+      source  = "oracle/oci"
+      version = "~> 7.0"
     }
   }
-  backend "s3" {}
+  backend "oci" {}
 }
-provider "aws" {
-  region = var.aws_region
+
+provider "oci" {
+  region = var.region
 }
-variable "aws_region" {
+
+variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "sa-saopaulo-1"
+}
+variable "compartment_ocid" {
+  type = string
 }
 variable "ssh_public_key" {
   type      = string
@@ -23,92 +28,108 @@ variable "ssh_cidr" {
   type    = string
   default = "0.0.0.0/0"
 }
-resource "aws_vpc" "parking" {
-  cidr_block = "10.42.0.0/16"
-  tags       = { Name = "parking-vpc" }
+
+data "oci_identity_availability_domains" "ads" {
+  compartment_id = var.compartment_ocid
 }
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.parking.id
-  cidr_block              = "10.42.1.0/24"
-  map_public_ip_on_launch = true
-  availability_zone       = "${var.aws_region}a"
-  tags                    = { Name = "parking-public" }
+data "oci_core_images" "ubuntu" {
+  compartment_id           = var.compartment_ocid
+  operating_system         = "Canonical Ubuntu"
+  operating_system_version = "24.04"
+  shape                    = "VM.Standard.A1.Flex"
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
 }
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.parking.id
+
+resource "oci_core_vcn" "parking" {
+  compartment_id = var.compartment_ocid
+  cidr_blocks    = ["10.42.0.0/16"]
+  display_name   = "parking-vcn"
+  dns_label      = "parking"
 }
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.parking.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+resource "oci_core_internet_gateway" "igw" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.parking.id
+  display_name   = "parking-internet"
+  enabled        = true
+}
+resource "oci_core_route_table" "public" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.parking.id
+  display_name   = "parking-public-routes"
+  route_rules {
+    destination       = "0.0.0.0/0"
+    destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_internet_gateway.igw.id
   }
 }
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-resource "aws_security_group" "web" {
-  name   = "parking-web"
-  vpc_id = aws_vpc.parking.id
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.ssh_cidr]
+resource "oci_core_security_list" "web" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.parking.id
+  display_name   = "parking-web"
+  egress_security_rules {
+    destination = "0.0.0.0/0"
+    protocol    = "all"
   }
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  ingress_security_rules {
+    source   = var.ssh_cidr
+    protocol = "6"
+    tcp_options {
+      min = 22
+      max = 22
+    }
   }
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  ingress_security_rules {
+    source   = "0.0.0.0/0"
+    protocol = "6"
+    tcp_options {
+      min = 80
+      max = 80
+    }
   }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
+  ingress_security_rules {
+    source   = "0.0.0.0/0"
+    protocol = "6"
+    tcp_options {
+      min = 443
+      max = 443
+    }
   }
 }
-resource "aws_key_pair" "deploy" {
-  key_name   = "parking-deploy"
-  public_key = var.ssh_public_key
+resource "oci_core_subnet" "public" {
+  compartment_id             = var.compartment_ocid
+  vcn_id                     = oci_core_vcn.parking.id
+  cidr_block                 = "10.42.1.0/24"
+  display_name               = "parking-public"
+  dns_label                  = "public"
+  route_table_id             = oci_core_route_table.public.id
+  security_list_ids          = [oci_core_security_list.web.id]
+  prohibit_public_ip_on_vnic = false
 }
-resource "aws_instance" "app" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.micro"
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.web.id]
-  key_name               = aws_key_pair.deploy.key_name
-  root_block_device {
-    volume_size = 16
-    volume_type = "gp3"
+resource "oci_core_instance" "app" {
+  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
+  compartment_id      = var.compartment_ocid
+  display_name        = "parking-mvp"
+  shape               = "VM.Standard.A1.Flex"
+  shape_config {
+    ocpus         = 1
+    memory_in_gbs = 6
   }
-  tags = { Name = "parking-mvp" }
+  create_vnic_details {
+    subnet_id        = oci_core_subnet.public.id
+    assign_public_ip = true
+  }
+  source_details {
+    source_type = "image"
+    source_id   = data.oci_core_images.ubuntu.images[0].id
+  }
+  metadata = {
+    ssh_authorized_keys = var.ssh_public_key
+  }
 }
-resource "aws_eip" "app" {
-  domain     = "vpc"
-  instance   = aws_instance.app.id
-  depends_on = [aws_internet_gateway.igw]
+data "oci_core_instance" "app" {
+  instance_id = oci_core_instance.app.id
 }
 output "public_ip" {
-  value = aws_eip.app.public_ip
+  value = data.oci_core_instance.app.public_ip
 }

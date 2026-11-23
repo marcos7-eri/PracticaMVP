@@ -65,15 +65,28 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+      - name: Configurar clave API de OCI
+        env:
+          OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.oci
+          printf '%s\n' "$OCI_API_PRIVATE_KEY" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
       - name: Crear infraestructura
         working-directory: infra/terraform
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_PRIVATE_KEY_PATH: /home/runner/.oci/oci_api_key.pem
+          OCI_REGION: ${{ vars.OCI_REGION || 'sa-saopaulo-1' }}
+          OCI_NAMESPACE: ${{ secrets.OCI_NAMESPACE }}
+          TF_VAR_region: ${{ vars.OCI_REGION || 'sa-saopaulo-1' }}
+          TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID }}
           TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
         run: |
-          terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="key=parking/terraform.tfstate" -backend-config="region=us-east-1" -backend-config="encrypt=true"
+          terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="namespace=$OCI_NAMESPACE" -backend-config="key=parking/terraform.tfstate" -backend-config="region=$OCI_REGION" -backend-config="tenancy_ocid=$OCI_TENANCY_OCID" -backend-config="user_ocid=$OCI_USER_OCID" -backend-config="fingerprint=$OCI_FINGERPRINT" -backend-config="private_key_path=$OCI_PRIVATE_KEY_PATH"
           terraform apply -auto-approve
           terraform output -raw public_ip > /tmp/parking_ip
       - name: Configurar VM y desplegar
