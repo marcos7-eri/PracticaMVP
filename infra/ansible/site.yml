@@ -68,6 +68,11 @@
               image: {{ dockerhub_username }}/parking-backend:latest
               restart: unless-stopped
               volumes: ["parking_data:/app/data"]
+            cloudflare:
+              image: cloudflare/cloudflared:latest
+              restart: unless-stopped
+              command: tunnel --no-autoupdate --url http://frontend:3000
+              depends_on: [frontend]
           volumes:
             parking_data:
     - name: Descargar y arrancar imagen
