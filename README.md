@@ -35,8 +35,8 @@ La aplicación queda en `http://localhost`; `parking_data` conserva SQLite entre
 
 ## GitHub Actions
 
-- Push a `dev`: pruebas unitarias, integración, E2E y compilación.
-- Push a `main`: mismas pruebas; después publica `DOCKERHUB_USERNAME/parking-frontend` y `DOCKERHUB_USERNAME/parking-backend` con etiquetas `latest` y SHA. Si `ENABLE_DEPLOY=true`, crea/actualiza infraestructura OCI y configura la VM con Ansible.
+- Push a `dev`: pruebas unitarias, integración, E2E, compilación, imágenes Docker y un plan de Terraform en OCI (sin crear recursos).
+- Push a `main`: mismas pruebas; después publica `DOCKERHUB_USERNAME/parking-frontend` y `DOCKERHUB_USERNAME/parking-backend` para AMD64 y ARM64 con etiquetas `latest` y SHA. Si `ENABLE_DEPLOY=true`, crea/actualiza infraestructura OCI y configura la VM con Ansible.
 
 Configura estos *secrets* en GitHub: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`; para despliegue también `OCI_TENANCY_OCID`, `OCI_USER_OCID`, `OCI_COMPARTMENT_OCID`, `OCI_FINGERPRINT`, `OCI_API_PRIVATE_KEY`, `OCI_NAMESPACE`, `SSH_PRIVATE_KEY`, `SSH_PUBLIC_KEY` y `TF_STATE_BUCKET`. Crea previamente un bucket privado de OCI Object Storage con versionado para el estado de Terraform. La variable de repositorio `OCI_REGION` puede fijarse a `sa-saopaulo-1` y `ENABLE_DEPLOY=true` solo cuando credenciales, claves y bucket estén listos. `SSH_PRIVATE_KEY` y `SSH_PUBLIC_KEY` deben ser el mismo par Ed25519; nunca subas claves privadas al repositorio.
 
