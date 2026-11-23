@@ -81,4 +81,9 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           IP=$(cat /tmp/parking_ip)
+          for i in {1..60}; do
+            if timeout 3 bash -c "</dev/tcp/$IP/22" 2>/dev/null; then break; fi
+            sleep 10
+          done
+          timeout 3 bash -c "</dev/tcp/$IP/22"
           ansible-playbook -i "$IP," -u ubuntu --private-key ~/.ssh/id_ed25519 infra/ansible/site.yml -e "dockerhub_username=$DOCKERHUB_USERNAME"
