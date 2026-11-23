@@ -17,9 +17,16 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix backend
       - run: npm ci --prefix frontend
-      - run: npx playwright install --with-deps chromium
-      - run: npm test
-      - run: npm run build
+      - name: 1. Pruebas unitarias
+        run: npm run test:unit
+      - name: 2. Pruebas de integración
+        run: npm run test:integration
+      - name: Instalar navegador para E2E
+        run: npx playwright install --with-deps chromium
+      - name: 3. Pruebas E2E
+        run: npm run test:e2e
+      - name: Compilar frontend y backend
+        run: npm run build
   publish:
     needs: test
     runs-on: ubuntu-latest
