@@ -21,3 +21,7 @@ jobs:
       - run: npm run test:integration
       - run: npm run test:e2e
       - run: npm run build
+      - name: Construir imagen frontend
+        run: docker build -f frontend/Dockerfile -t parking-frontend:test .
+      - name: Construir imagen backend
+        run: docker build -f backend/Dockerfile -t parking-backend:test .
