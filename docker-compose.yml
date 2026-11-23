@@ -1,0 +1,13 @@
+services:
+  app:
+    image: ${DOCKERHUB_USERNAME:-local}/parking-mvp:${IMAGE_TAG:-latest}
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - parking_data:/app/data
+    environment:
+      DB_FILE: /app/data/parking.sqlite
+volumes:
+  parking_data:

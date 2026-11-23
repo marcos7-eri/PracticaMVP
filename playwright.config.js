@@ -1,0 +1,2 @@
+import{defineConfig}from'@playwright/test';export default defineConfig({testDir:'tests/e2e',workers:1,use:{baseURL:'http://127.0.0.1:4173'},webServer:[{command:'node server/index.js',url:'http://127.0.0.1:3001/api/health',env:{DB_FILE:`./data/e2e-${process.pid}.sqlite`},reuseExistingServer:false},{command:'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4173',url:'http://127.0.0.1:4173',reuseExistingServer:false}]});
+
