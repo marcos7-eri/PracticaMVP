@@ -15,6 +15,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix backend
+      - run: npm ci --prefix frontend
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run build
@@ -31,10 +33,19 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/parking-mvp:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/parking-mvp:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/parking-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/parking-frontend:${{ github.sha }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/parking-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/parking-backend:${{ github.sha }}
   deploy:
     needs: publish
     if: ${{ vars.ENABLE_DEPLOY == 'true' }}

@@ -1,10 +1,13 @@
 node_modules/
+**/node_modules/
 dist/
+.next/
 data/
 playwright-report/
 test-results/
 .playwright-browsers/
 .docker-config/
+work/
 .env
 *.tfstate
 *.tfstate.*

@@ -26,10 +26,14 @@
         dest: /opt/parking/docker-compose.yml
         content: |
           services:
-            app:
-              image: {{ dockerhub_username }}/parking-mvp:latest
+            frontend:
+              image: {{ dockerhub_username }}/parking-frontend:latest
               restart: unless-stopped
-              ports: ["80:80"]
+              ports: ["80:3000"]
+              depends_on: [backend]
+            backend:
+              image: {{ dockerhub_username }}/parking-backend:latest
+              restart: unless-stopped
               volumes: ["parking_data:/app/data"]
           volumes:
             parking_data:

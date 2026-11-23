@@ -1,5 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
+import fs from 'node:fs';import path from 'node:path';
 export function createDb(filename = ':memory:') {
+  if(filename!==':memory:')fs.mkdirSync(path.dirname(filename),{recursive:true});
   const db = new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
     CREATE TABLE IF NOT EXISTS spots (id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE);
