@@ -19,6 +19,37 @@
       community.general.ufw: { rule: allow, port: '443', proto: tcp }
     - name: Activar firewall
       community.general.ufw: { state: enabled, policy: deny }
+    - name: Instalar escritorio y VNC
+      apt:
+        name: [tigervnc-standalone-server, xfce4, xfce4-terminal, dbus-x11, novnc, websockify]
+        install_recommends: false
+        state: present
+    - name: Crear directorio VNC del usuario
+      file: { path: /home/ubuntu/.vnc, state: directory, owner: ubuntu, group: ubuntu, mode: '0700' }
+    - name: Configurar sesión XFCE
+      copy:
+        src: files/xstartup
+        dest: /home/ubuntu/.vnc/xstartup
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+      notify: Reiniciar VNC
+    - name: Configurar servicio VNC
+      copy:
+        src: files/parking-vnc.service
+        dest: /etc/systemd/system/parking-vnc.service
+        mode: '0644'
+      notify: Reiniciar VNC
+    - name: Configurar acceso web a VNC
+      copy:
+        src: files/parking-novnc.service
+        dest: /etc/systemd/system/parking-novnc.service
+        mode: '0644'
+      notify: Reiniciar noVNC
+    - name: Activar VNC
+      systemd: { name: parking-vnc, state: started, enabled: true, daemon_reload: true }
+    - name: Activar noVNC
+      systemd: { name: parking-novnc, state: started, enabled: true, daemon_reload: true }
     - name: Crear directorio de aplicación
       file: { path: /opt/parking, state: directory, mode: '0755' }
     - name: Escribir Compose
@@ -40,3 +71,8 @@
     - name: Descargar y arrancar imagen
       command: docker compose -f /opt/parking/docker-compose.yml up -d --pull always
       changed_when: true
+  handlers:
+    - name: Reiniciar VNC
+      systemd: { name: parking-vnc, state: restarted, daemon_reload: true }
+    - name: Reiniciar noVNC
+      systemd: { name: parking-novnc, state: restarted, daemon_reload: true }

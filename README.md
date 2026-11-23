@@ -42,6 +42,16 @@ Configura estos *secrets* en GitHub: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`; pa
 
 Terraform crea una VCN, subred pública, gateway, rutas, lista de seguridad y VM Ubuntu 24.04 con IP pública en OCI. La forma elegida es de pago: `VM.Standard.A2.Flex` con 1 OCPU y 4 GB. Según la tarifa pública de Oracle de US$0,0183484/OCPU-h y US$0,0026212/GB-h, el cómputo estimado es US$0,0288332/h, o US$21,05 por 730 horas; almacenamiento y otros consumos pueden sumarse. Ansible instala Docker, Git, UFW e iptables; permite 22, 80 y 443, y ejecuta ambos contenedores. El puerto 443 queda preparado para añadir TLS cuando haya dominio.
 
+## Escritorio remoto VNC
+
+Ansible instala XFCE, TigerVNC y noVNC en la VM Ubuntu. VNC (`5901`) y noVNC (`6080`) escuchan solo en `localhost` de la VM y no se abren en la VCN ni en UFW. Para acceder desde Windows, abre PowerShell y mantén esta conexión SSH abierta:
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\parking_oci" -N -L 6080:127.0.0.1:6080 ubuntu@137.131.133.40
+```
+
+Después abre `http://localhost:6080/vnc.html` en tu navegador y pulsa **Connect**. La sesión VNC no solicita una segunda contraseña porque el acceso está limitado al túnel SSH; protege la clave privada y cierra la terminal SSH para terminar el acceso. El escritorio se inicia automáticamente al arrancar la VM. Para verificarlo dentro de la VM: `systemctl status parking-vnc parking-novnc`.
+
 ## Reparto sugerido para dos personas
 
 - Persona 1: frontend Next.js, estilos y pruebas E2E.
