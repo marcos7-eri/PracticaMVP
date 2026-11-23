@@ -4,9 +4,11 @@
   vars:
     ansible_ssh_common_args: '-o StrictHostKeyChecking=accept-new'
   tasks:
+    - name: Retirar gestor de reglas incompatible con UFW
+      apt: { name: iptables-persistent, state: absent }
     - name: Instalar Docker, Git y firewall
       apt:
-        name: [docker.io, docker-compose-v2, git, ufw, iptables-persistent]
+        name: [docker.io, docker-compose-v2, git, ufw, iptables]
         update_cache: true
         state: present
     - name: Activar Docker
