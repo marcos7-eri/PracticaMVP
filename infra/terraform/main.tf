@@ -127,9 +127,15 @@ resource "oci_core_instance" "app" {
     ssh_authorized_keys = var.ssh_public_key
   }
 }
-data "oci_core_instance" "app" {
-  instance_id = oci_core_instance.app.id
+data "oci_core_vnic_attachments" "app" {
+  compartment_id = var.compartment_ocid
+  instance_id     = oci_core_instance.app.id
+}
+
+data "oci_core_vnic" "app" {
+  vnic_id = data.oci_core_vnic_attachments.app.vnic_attachments[0].vnic_id
 }
 output "public_ip" {
-  value = data.oci_core_instance.app.public_ip
+  value = data.oci_core_vnic.app.public_ip_address
 }
+
